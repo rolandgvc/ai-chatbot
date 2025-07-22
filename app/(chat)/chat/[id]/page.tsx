@@ -5,6 +5,7 @@ import { auth } from '@/app/(auth)/auth';
 import { Chat } from '@/components/chat';
 import { getChatById, getMessagesByChatId } from '@/lib/db/queries';
 import { DataStreamHandler } from '@/components/data-stream-handler';
+import { ChatErrorBoundary } from '@/components/chat-error-boundary';
 import { DEFAULT_CHAT_MODEL } from '@/lib/ai/models';
 import { convertToUIMessages } from '@/lib/utils';
 
@@ -45,15 +46,17 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
   if (!chatModelFromCookie) {
     return (
       <>
-        <Chat
-          id={chat.id}
-          initialMessages={uiMessages}
-          initialChatModel={DEFAULT_CHAT_MODEL}
-          initialVisibilityType={chat.visibility}
-          isReadonly={session?.user?.id !== chat.userId}
-          session={session}
-          autoResume={true}
-        />
+        <ChatErrorBoundary chatId={chat.id}>
+          <Chat
+            id={chat.id}
+            initialMessages={uiMessages}
+            initialChatModel={DEFAULT_CHAT_MODEL}
+            initialVisibilityType={chat.visibility}
+            isReadonly={session?.user?.id !== chat.userId}
+            session={session}
+            autoResume={true}
+          />
+        </ChatErrorBoundary>
         <DataStreamHandler />
       </>
     );
@@ -61,15 +64,17 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
 
   return (
     <>
-      <Chat
-        id={chat.id}
-        initialMessages={uiMessages}
-        initialChatModel={chatModelFromCookie.value}
-        initialVisibilityType={chat.visibility}
-        isReadonly={session?.user?.id !== chat.userId}
-        session={session}
-        autoResume={true}
-      />
+      <ChatErrorBoundary chatId={chat.id}>
+        <Chat
+          id={chat.id}
+          initialMessages={uiMessages}
+          initialChatModel={chatModelFromCookie.value}
+          initialVisibilityType={chat.visibility}
+          isReadonly={session?.user?.id !== chat.userId}
+          session={session}
+          autoResume={true}
+        />
+      </ChatErrorBoundary>
       <DataStreamHandler />
     </>
   );
