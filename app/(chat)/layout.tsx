@@ -5,6 +5,7 @@ import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 import { auth } from '../(auth)/auth';
 import Script from 'next/script';
 import { DataStreamProvider } from '@/components/data-stream-provider';
+import { ErrorBoundary } from '@/components/error-boundary';
 
 export const experimental_ppr = true;
 
@@ -23,10 +24,33 @@ export default async function Layout({
         strategy="beforeInteractive"
       />
       <DataStreamProvider>
-        <SidebarProvider defaultOpen={!isCollapsed}>
-          <AppSidebar user={session?.user} />
-          <SidebarInset>{children}</SidebarInset>
-        </SidebarProvider>
+        <ErrorBoundary
+          isolate
+          onError={(error, errorInfo) => {
+            console.error('Chat layout error:', { error, errorInfo, user: session?.user?.id });
+          }}
+        >
+          <SidebarProvider defaultOpen={!isCollapsed}>
+            <ErrorBoundary
+              isolate
+              onError={(error, errorInfo) => {
+                console.error('Sidebar error:', { error, errorInfo });
+              }}
+            >
+              <AppSidebar user={session?.user} />
+            </ErrorBoundary>
+            <SidebarInset>
+              <ErrorBoundary
+                isolate
+                onError={(error, errorInfo) => {
+                  console.error('Chat content error:', { error, errorInfo });
+                }}
+              >
+                {children}
+              </ErrorBoundary>
+            </SidebarInset>
+          </SidebarProvider>
+        </ErrorBoundary>
       </DataStreamProvider>
     </>
   );
