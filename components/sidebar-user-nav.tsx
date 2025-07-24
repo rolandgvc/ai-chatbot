@@ -23,7 +23,15 @@ import { toast } from './toast';
 import { LoaderIcon } from './icons';
 import { guestRegex } from '@/lib/constants';
 
-export function SidebarUserNav({ user }: { user: User }) {
+/**
+ * Props for the SidebarUserNav component
+ */
+interface SidebarUserNavProps {
+  /** The authenticated user information */
+  user: User;
+}
+
+export function SidebarUserNav({ user }: SidebarUserNavProps) {
   const router = useRouter();
   const { data, status } = useSession();
   const { setTheme, resolvedTheme } = useTheme();
