@@ -95,7 +95,15 @@ const components: Partial<Components> = {
 
 const remarkPlugins = [remarkGfm];
 
-const NonMemoizedMarkdown = ({ children }: { children: string }) => {
+/**
+ * Props for the Markdown component
+ */
+interface MarkdownProps {
+  /** The markdown content to be rendered as a string */
+  children: string;
+}
+
+const NonMemoizedMarkdown = ({ children }: MarkdownProps) => {
   return (
     <ReactMarkdown remarkPlugins={remarkPlugins} components={components}>
       {children}
