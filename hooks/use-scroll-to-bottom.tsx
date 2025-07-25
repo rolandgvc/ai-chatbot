@@ -3,7 +3,16 @@ import { useRef, useEffect, useCallback } from 'react';
 
 type ScrollFlag = ScrollBehavior | false;
 
-export function useScrollToBottom() {
+interface UseScrollToBottomReturn {
+  containerRef: React.RefObject<HTMLDivElement>;
+  endRef: React.RefObject<HTMLDivElement>;
+  isAtBottom: boolean;
+  scrollToBottom: (scrollBehavior?: ScrollBehavior) => void;
+  onViewportEnter: () => void;
+  onViewportLeave: () => void;
+}
+
+export function useScrollToBottom(): UseScrollToBottomReturn {
   const containerRef = useRef<HTMLDivElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
 

@@ -1,8 +1,8 @@
 import { TerminalWindowIcon, LoaderIcon, CrossSmallIcon } from './icons';
 import { Button } from './ui/button';
 import {
-  Dispatch,
-  SetStateAction,
+  type Dispatch,
+  type SetStateAction,
   useCallback,
   useEffect,
   useRef,
@@ -27,7 +27,7 @@ interface ConsoleProps {
   setConsoleOutputs: Dispatch<SetStateAction<Array<ConsoleOutput>>>;
 }
 
-export function Console({ consoleOutputs, setConsoleOutputs }: ConsoleProps) {
+export function Console({ consoleOutputs, setConsoleOutputs }: ConsoleProps): JSX.Element | null {
   const [height, setHeight] = useState<number>(300);
   const [isResizing, setIsResizing] = useState(false);
   const consoleEndRef = useRef<HTMLDivElement>(null);
