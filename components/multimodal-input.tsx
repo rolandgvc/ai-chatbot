@@ -29,6 +29,84 @@ import { useScrollToBottom } from '@/hooks/use-scroll-to-bottom';
 import type { VisibilityType } from './visibility-selector';
 import type { Attachment, ChatMessage } from '@/lib/types';
 
+/**
+ * MultimodalInput component properties interface
+ */
+interface MultimodalInputProps {
+  /** Unique identifier for the chat session */
+  chatId: string;
+  /** Current input text value */
+  input: string;
+  /** Function to update the input text value */
+  setInput: Dispatch<SetStateAction<string>>;
+  /** Current status of the chat (ready, submitted, loading, etc.) */
+  status: UseChatHelpers<ChatMessage>['status'];
+  /** Function to stop the current chat operation */
+  stop: () => void;
+  /** Array of file attachments */
+  attachments: Array<Attachment>;
+  /** Function to update the attachments array */
+  setAttachments: Dispatch<SetStateAction<Array<Attachment>>>;
+  /** Array of chat messages */
+  messages: Array<UIMessage>;
+  /** Function to update the messages array */
+  setMessages: UseChatHelpers<ChatMessage>['setMessages'];
+  /** Function to send a new message */
+  sendMessage: UseChatHelpers<ChatMessage>['sendMessage'];
+  /** Optional CSS class name for styling */
+  className?: string;
+  /** Current visibility type for the chat */
+  selectedVisibilityType: VisibilityType;
+}
+
+/**
+ * PureMultimodalInput Component
+ * 
+ * A comprehensive input component that handles text input, file attachments, and message sending.
+ * Supports multimodal interactions including text, images, and other file types.
+ * 
+ * @component
+ * @example
+ * ```tsx
+ * <PureMultimodalInput
+ *   chatId="chat-123"
+ *   input={inputText}
+ *   setInput={setInputText}
+ *   status="ready"
+ *   stop={stopFunction}
+ *   attachments={fileAttachments}
+ *   setAttachments={setFileAttachments}
+ *   messages={chatMessages}
+ *   setMessages={setMessages}
+ *   sendMessage={sendMessageFunction}
+ *   selectedVisibilityType="private"
+ * />
+ * ```
+ * 
+ * Features:
+ * - Auto-resizing textarea that adapts to content
+ * - File upload support with drag-and-drop
+ * - Attachment preview and management
+ * - Keyboard shortcuts (Enter to send, Shift+Enter for new line)
+ * - Automatic scroll-to-bottom functionality
+ * - Suggested actions when chat is empty
+ * - Local storage persistence for input recovery
+ * - Upload queue management with progress indication
+ * 
+ * File Upload:
+ * - Supports multiple file types
+ * - Shows upload progress with loading states
+ * - Error handling with user feedback
+ * - File validation and type checking
+ * 
+ * Accessibility:
+ * - Proper ARIA labels and keyboard navigation
+ * - Screen reader compatible
+ * - Focus management for optimal user experience
+ * 
+ * @param props - Component properties
+ * @returns JSX element containing the multimodal input interface
+ */
 function PureMultimodalInput({
   chatId,
   input,
@@ -42,20 +120,7 @@ function PureMultimodalInput({
   sendMessage,
   className,
   selectedVisibilityType,
-}: {
-  chatId: string;
-  input: string;
-  setInput: Dispatch<SetStateAction<string>>;
-  status: UseChatHelpers<ChatMessage>['status'];
-  stop: () => void;
-  attachments: Array<Attachment>;
-  setAttachments: Dispatch<SetStateAction<Array<Attachment>>>;
-  messages: Array<UIMessage>;
-  setMessages: UseChatHelpers<ChatMessage>['setMessages'];
-  sendMessage: UseChatHelpers<ChatMessage>['sendMessage'];
-  className?: string;
-  selectedVisibilityType: VisibilityType;
-}) {
+}: MultimodalInputProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { width } = useWindowSize();
 
@@ -65,6 +130,10 @@ function PureMultimodalInput({
     }
   }, []);
 
+  /**
+   * Adjusts the textarea height to fit content dynamically
+   * Prevents scrollbars by expanding the textarea as needed
+   */
   const adjustHeight = () => {
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
@@ -72,6 +141,10 @@ function PureMultimodalInput({
     }
   };
 
+  /**
+   * Resets the textarea to its default height
+   * Called after message submission to return to initial state
+   */
   const resetHeight = () => {
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
@@ -108,6 +181,11 @@ function PureMultimodalInput({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadQueue, setUploadQueue] = useState<Array<string>>([]);
 
+  /**
+   * Submits the current form with input text and attachments
+   * Cleans up form state and updates URL after submission
+   * Focuses textarea on desktop for continued interaction
+   */
   const submitForm = useCallback(() => {
     window.history.replaceState({}, '', `/chat/${chatId}`);
 
@@ -146,6 +224,13 @@ function PureMultimodalInput({
     chatId,
   ]);
 
+  /**
+   * Uploads a file to the server and returns attachment metadata
+   * Handles upload progress, error states, and user feedback
+   * 
+   * @param file - File object to upload
+   * @returns Promise resolving to attachment metadata or undefined on error
+   */
   const uploadFile = async (file: File) => {
     const formData = new FormData();
     formData.append('file', file);
@@ -324,6 +409,28 @@ function PureMultimodalInput({
   );
 }
 
+/**
+ * Memoized MultimodalInput component for performance optimization
+ * Re-renders only when input, status, attachments, or visibility type changes
+ * 
+ * @component
+ * @example
+ * ```tsx
+ * <MultimodalInput
+ *   chatId="chat-123"
+ *   input={inputText}
+ *   setInput={setInputText}
+ *   status="ready"
+ *   stop={stopFunction}
+ *   attachments={fileAttachments}
+ *   setAttachments={setFileAttachments}
+ *   messages={chatMessages}
+ *   setMessages={setMessages}
+ *   sendMessage={sendMessageFunction}
+ *   selectedVisibilityType="private"
+ * />
+ * ```
+ */
 export const MultimodalInput = memo(
   PureMultimodalInput,
   (prevProps, nextProps) => {
@@ -337,13 +444,27 @@ export const MultimodalInput = memo(
   },
 );
 
+/**
+ * AttachmentsButton component properties interface
+ */
+interface AttachmentsButtonProps {
+  /** Reference to the hidden file input element */
+  fileInputRef: React.MutableRefObject<HTMLInputElement | null>;
+  /** Current chat status to determine button state */
+  status: UseChatHelpers<ChatMessage>['status'];
+}
+
+/**
+ * Pure AttachmentsButton component for triggering file uploads
+ * Disabled when chat is not in ready state
+ * 
+ * @param props - Component properties
+ * @returns JSX button element for file attachments
+ */
 function PureAttachmentsButton({
   fileInputRef,
   status,
-}: {
-  fileInputRef: React.MutableRefObject<HTMLInputElement | null>;
-  status: UseChatHelpers<ChatMessage>['status'];
-}) {
+}: AttachmentsButtonProps) {
   return (
     <Button
       data-testid="attachments-button"
@@ -362,13 +483,27 @@ function PureAttachmentsButton({
 
 const AttachmentsButton = memo(PureAttachmentsButton);
 
+/**
+ * StopButton component properties interface
+ */
+interface StopButtonProps {
+  /** Function to stop the current chat operation */
+  stop: () => void;
+  /** Function to update the messages array */
+  setMessages: UseChatHelpers<ChatMessage>['setMessages'];
+}
+
+/**
+ * Pure StopButton component for halting ongoing chat operations
+ * Triggers message state refresh when clicked
+ * 
+ * @param props - Component properties
+ * @returns JSX button element for stopping chat
+ */
 function PureStopButton({
   stop,
   setMessages,
-}: {
-  stop: () => void;
-  setMessages: UseChatHelpers<ChatMessage>['setMessages'];
-}) {
+}: StopButtonProps) {
   return (
     <Button
       data-testid="stop-button"
@@ -386,15 +521,30 @@ function PureStopButton({
 
 const StopButton = memo(PureStopButton);
 
+/**
+ * SendButton component properties interface
+ */
+interface SendButtonProps {
+  /** Function to submit the current form */
+  submitForm: () => void;
+  /** Current input text */
+  input: string;
+  /** Array of files currently being uploaded */
+  uploadQueue: Array<string>;
+}
+
+/**
+ * Pure SendButton component for submitting messages
+ * Disabled when input is empty or files are uploading
+ * 
+ * @param props - Component properties
+ * @returns JSX button element for sending messages
+ */
 function PureSendButton({
   submitForm,
   input,
   uploadQueue,
-}: {
-  submitForm: () => void;
-  input: string;
-  uploadQueue: Array<string>;
-}) {
+}: SendButtonProps) {
   return (
     <Button
       data-testid="send-button"

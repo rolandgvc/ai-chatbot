@@ -23,6 +23,64 @@ import { ChatSDKError } from '@/lib/errors';
 import type { Attachment, ChatMessage } from '@/lib/types';
 import { useDataStream } from './data-stream-provider';
 
+/**
+ * Chat component properties interface
+ */
+interface ChatProps {
+  /** Unique identifier for the chat session */
+  id: string;
+  /** Array of initial messages to populate the chat */
+  initialMessages: ChatMessage[];
+  /** ID of the initially selected chat model */
+  initialChatModel: string;
+  /** Initial visibility setting for the chat (public/private) */
+  initialVisibilityType: VisibilityType;
+  /** Whether the chat is in read-only mode (no input allowed) */
+  isReadonly: boolean;
+  /** User session object containing authentication and user data */
+  session: Session;
+  /** Whether to automatically resume interrupted conversations */
+  autoResume: boolean;
+}
+
+/**
+ * Main Chat Component
+ * 
+ * Renders a complete chat interface with message history, input controls, and artifact support.
+ * Manages real-time message streaming, file attachments, and chat state persistence.
+ * 
+ * @component
+ * @example
+ * ```tsx
+ * <Chat
+ *   id="chat-123"
+ *   initialMessages={[]}
+ *   initialChatModel="gpt-4"
+ *   initialVisibilityType="private"
+ *   isReadonly={false}
+ *   session={userSession}
+ *   autoResume={true}
+ * />
+ * ```
+ * 
+ * Features:
+ * - Real-time message streaming with AI models
+ * - File attachment support through multimodal input
+ * - Artifact generation and display
+ * - Chat visibility management (public/private)
+ * - Auto-resume functionality for interrupted streams
+ * - Vote tracking for message quality
+ * - URL query parameter handling for direct message sending
+ * 
+ * State Management:
+ * - Uses useChat hook for core chat functionality
+ * - Manages input state and file attachments
+ * - Handles data streaming and error states
+ * - Synchronizes with server-side chat persistence
+ * 
+ * @param props - Chat component properties
+ * @returns JSX element containing the complete chat interface
+ */
 export function Chat({
   id,
   initialMessages,
@@ -31,15 +89,7 @@ export function Chat({
   isReadonly,
   session,
   autoResume,
-}: {
-  id: string;
-  initialMessages: ChatMessage[];
-  initialChatModel: string;
-  initialVisibilityType: VisibilityType;
-  isReadonly: boolean;
-  session: Session;
-  autoResume: boolean;
-}) {
+}: ChatProps) {
   const { visibilityType } = useChatVisibility({
     chatId: id,
     initialVisibilityType,
