@@ -8,6 +8,17 @@ import { cn } from '@/lib/utils';
 
 import 'react-data-grid/lib/styles.css';
 
+interface SheetData {
+  rows: string[][];
+  headers: string[];
+}
+
+interface SheetRowData {
+  id: number;
+  rowNumber: number;
+  [key: string]: string | number;
+}
+
 type SheetEditorProps = {
   content: string;
   saveContent: (content: string, isCurrentVersion: boolean) => void;
@@ -75,7 +86,7 @@ const PureSpreadsheetEditor = ({
 
   const initialRows = useMemo(() => {
     return parseData.map((row, rowIndex) => {
-      const rowData: any = {
+      const rowData: SheetRowData = {
         id: rowIndex,
         rowNumber: rowIndex + 1,
       };
@@ -94,15 +105,15 @@ const PureSpreadsheetEditor = ({
     setLocalRows(initialRows);
   }, [initialRows]);
 
-  const generateCsv = (data: any[][]) => {
+  const generateCsv = (data: string[][]) => {
     return unparse(data);
   };
 
-  const handleRowsChange = (newRows: any[]) => {
+  const handleRowsChange = (newRows: SheetRowData[]) => {
     setLocalRows(newRows);
 
     const updatedData = newRows.map((row) => {
-      return columns.slice(1).map((col) => row[col.key] || '');
+      return columns.slice(1).map((col) => String(row[col.key] || ''));
     });
 
     const newCsvContent = generateCsv(updatedData);

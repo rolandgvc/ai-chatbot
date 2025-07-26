@@ -1,10 +1,17 @@
 import { Button } from './ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
-import { artifactDefinitions, UIArtifact } from './artifact';
-import { Dispatch, memo, SetStateAction, useState } from 'react';
-import { ArtifactActionContext } from './create-artifact';
+import { artifactDefinitions, type UIArtifact } from './artifact';
+import { type Dispatch, memo, type SetStateAction, useState } from 'react';
+import type { ArtifactActionContext } from './create-artifact';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+
+interface ArtifactMetadata {
+  id: string;
+  type: string;
+  version: number;
+  [key: string]: unknown;
+}
 
 interface ArtifactActionsProps {
   artifact: UIArtifact;
@@ -12,8 +19,8 @@ interface ArtifactActionsProps {
   currentVersionIndex: number;
   isCurrentVersion: boolean;
   mode: 'edit' | 'diff';
-  metadata: any;
-  setMetadata: Dispatch<SetStateAction<any>>;
+  metadata: ArtifactMetadata;
+  setMetadata: Dispatch<SetStateAction<ArtifactMetadata>>;
 }
 
 function PureArtifactActions({
