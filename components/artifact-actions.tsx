@@ -7,9 +7,9 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
 interface ArtifactMetadata {
-  id: string;
-  type: string;
-  version: number;
+  id?: string;
+  type?: string;
+  version?: number;
   [key: string]: unknown;
 }
 
