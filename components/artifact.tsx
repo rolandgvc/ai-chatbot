@@ -29,29 +29,139 @@ import type { UseChatHelpers } from '@ai-sdk/react';
 import type { VisibilityType } from './visibility-selector';
 import type { Attachment, ChatMessage } from '@/lib/types';
 
+/**
+ * Available artifact definitions for different content types
+ * Each artifact type has its own rendering and editing capabilities
+ */
 export const artifactDefinitions = [
   textArtifact,
   codeArtifact,
   imageArtifact,
   sheetArtifact,
 ];
+
+/**
+ * Union type of all available artifact kinds
+ * Used for type safety when working with different artifact types
+ */
 export type ArtifactKind = (typeof artifactDefinitions)[number]['kind'];
 
+/**
+ * Interface for UI artifact state representation
+ * Contains all necessary data for rendering and managing artifacts
+ */
 export interface UIArtifact {
+  /** Display title of the artifact */
   title: string;
+  /** Unique document identifier in the database */
   documentId: string;
+  /** Type of artifact (text, code, image, sheet) */
   kind: ArtifactKind;
+  /** Current content of the artifact */
   content: string;
+  /** Whether the artifact overlay is currently visible */
   isVisible: boolean;
+  /** Current status of the artifact (streaming during creation, idle when done) */
   status: 'streaming' | 'idle';
+  /** Bounding box coordinates for animation transitions */
   boundingBox: {
+    /** Top position in pixels */
     top: number;
+    /** Left position in pixels */
     left: number;
+    /** Width in pixels */
     width: number;
+    /** Height in pixels */
     height: number;
   };
 }
 
+/**
+ * Artifact component properties interface
+ */
+interface ArtifactProps {
+  /** Unique identifier for the chat session */
+  chatId: string;
+  /** Current input text value */
+  input: string;
+  /** Function to update the input text value */
+  setInput: Dispatch<SetStateAction<string>>;
+  /** Current status of the chat operation */
+  status: UseChatHelpers<ChatMessage>['status'];
+  /** Function to stop the current chat operation */
+  stop: UseChatHelpers<ChatMessage>['stop'];
+  /** Array of file attachments */
+  attachments: Attachment[];
+  /** Function to update the attachments array */
+  setAttachments: Dispatch<SetStateAction<Attachment[]>>;
+  /** Array of chat messages */
+  messages: ChatMessage[];
+  /** Function to update the messages array */
+  setMessages: UseChatHelpers<ChatMessage>['setMessages'];
+  /** Array of message votes for quality feedback */
+  votes: Array<Vote> | undefined;
+  /** Function to send a new message */
+  sendMessage: UseChatHelpers<ChatMessage>['sendMessage'];
+  /** Function to regenerate the last assistant message */
+  regenerate: UseChatHelpers<ChatMessage>['regenerate'];
+  /** Whether the interface is in read-only mode */
+  isReadonly: boolean;
+  /** Current visibility setting for the chat */
+  selectedVisibilityType: VisibilityType;
+}
+
+/**
+ * PureArtifact Component
+ * 
+ * A comprehensive artifact management system that provides an overlay interface for
+ * creating, editing, and versioning various types of content artifacts (text, code, images, sheets).
+ * 
+ * @component
+ * @example
+ * ```tsx
+ * <PureArtifact
+ *   chatId="chat-123"
+ *   input={inputText}
+ *   setInput={setInputText}
+ *   status="ready"
+ *   stop={stopFunction}
+ *   attachments={fileAttachments}
+ *   setAttachments={setFileAttachments}
+ *   sendMessage={sendMessageFunction}
+ *   messages={chatMessages}
+ *   setMessages={setMessages}
+ *   regenerate={regenerateFunction}
+ *   votes={messageVotes}
+ *   isReadonly={false}
+ *   selectedVisibilityType="private"
+ * />
+ * ```
+ * 
+ * Features:
+ * - Full-screen overlay interface with smooth animations
+ * - Multi-type artifact support (text, code, image, sheet)
+ * - Real-time collaborative editing with auto-save
+ * - Version history management and diff viewing
+ * - Responsive design for mobile and desktop
+ * - Integrated chat interface for artifact refinement
+ * - Toolbar for artifact-specific actions
+ * 
+ * Artifact Lifecycle:
+ * 1. Created through AI chat interactions
+ * 2. Rendered in full-screen overlay with smooth transitions
+ * 3. Real-time editing with debounced auto-save
+ * 4. Version tracking with historical document states
+ * 5. Collaborative refinement through integrated chat
+ * 
+ * State Management:
+ * - Manages artifact visibility and content state
+ * - Handles document versioning and persistence
+ * - Coordinates with chat system for seamless workflow
+ * - Auto-saves changes with conflict resolution
+ * 
+ * @param props - Component properties
+ * @returns JSX element containing the artifact overlay interface
+ */
 function PureArtifact({
   chatId,
   input,
@@ -67,22 +177,7 @@ function PureArtifact({
   votes,
   isReadonly,
   selectedVisibilityType,
-}: {
-  chatId: string;
-  input: string;
-  setInput: Dispatch<SetStateAction<string>>;
-  status: UseChatHelpers<ChatMessage>['status'];
-  stop: UseChatHelpers<ChatMessage>['stop'];
-  attachments: Attachment[];
-  setAttachments: Dispatch<SetStateAction<Attachment[]>>;
-  messages: ChatMessage[];
-  setMessages: UseChatHelpers<ChatMessage>['setMessages'];
-  votes: Array<Vote> | undefined;
-  sendMessage: UseChatHelpers<ChatMessage>['sendMessage'];
-  regenerate: UseChatHelpers<ChatMessage>['regenerate'];
-  isReadonly: boolean;
-  selectedVisibilityType: VisibilityType;
-}) {
+}: ArtifactProps) {
   const { artifact, setArtifact, metadata, setMetadata } = useArtifact();
 
   const {
@@ -124,6 +219,13 @@ function PureArtifact({
   const { mutate } = useSWRConfig();
   const [isContentDirty, setIsContentDirty] = useState(false);
 
+  /**
+   * Handles content changes and persists them to the server
+   * Creates new document versions when content differs from current version
+   * Updates SWR cache optimistically for immediate UI feedback
+   * 
+   * @param updatedContent - The new content to save
+   */
   const handleContentChange = useCallback(
     (updatedContent: string) => {
       if (!artifact) return;
@@ -168,11 +270,22 @@ function PureArtifact({
     [artifact, mutate],
   );
 
+  /**
+   * Debounced version of handleContentChange to reduce server requests
+   * Waits 2 seconds after last change before persisting to prevent excessive API calls
+   */
   const debouncedHandleContentChange = useDebounceCallback(
     handleContentChange,
     2000,
   );
 
+  /**
+   * Saves content changes with optional debouncing
+   * Manages dirty state indicator and triggers appropriate save mechanism
+   * 
+   * @param updatedContent - The content to save
+   * @param debounce - Whether to use debounced saving (true) or immediate (false)
+   */
   const saveContent = useCallback(
     (updatedContent: string, debounce: boolean) => {
       if (document && updatedContent !== document.content) {
@@ -188,12 +301,25 @@ function PureArtifact({
     [document, debouncedHandleContentChange, handleContentChange],
   );
 
+  /**
+   * Retrieves document content by version index
+   * Safely handles missing documents and content
+   * 
+   * @param index - Version index to retrieve
+   * @returns Document content string or empty string if not found
+   */
   function getDocumentContentById(index: number) {
     if (!documents) return '';
     if (!documents[index]) return '';
     return documents[index].content ?? '';
   }
 
+  /**
+   * Handles version navigation and mode switching
+   * Manages current version index and edit/diff mode states
+   * 
+   * @param type - Type of version change (next, prev, toggle, latest)
+   */
   const handleVersionChange = (type: 'next' | 'prev' | 'toggle' | 'latest') => {
     if (!documents) return;
 
@@ -499,6 +625,32 @@ function PureArtifact({
   );
 }
 
+/**
+ * Memoized Artifact component for performance optimization
+ * Re-renders only when status, votes, input, messages, or visibility type changes
+ * Uses deep equality checking for complex props like votes and messages
+ * 
+ * @component
+ * @example
+ * ```tsx
+ * <Artifact
+ *   chatId="chat-123"
+ *   input={inputText}
+ *   setInput={setInputText}
+ *   status="ready"
+ *   stop={stopFunction}
+ *   attachments={fileAttachments}
+ *   setAttachments={setFileAttachments}
+ *   sendMessage={sendMessageFunction}
+ *   messages={chatMessages}
+ *   setMessages={setMessages}
+ *   regenerate={regenerateFunction}
+ *   votes={messageVotes}
+ *   isReadonly={false}
+ *   selectedVisibilityType="private"
+ * />
+ * ```
+ */
 export const Artifact = memo(PureArtifact, (prevProps, nextProps) => {
   if (prevProps.status !== nextProps.status) return false;
   if (!equal(prevProps.votes, nextProps.votes)) return false;
