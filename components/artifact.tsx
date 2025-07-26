@@ -29,21 +29,40 @@ import type { UseChatHelpers } from '@ai-sdk/react';
 import type { VisibilityType } from './visibility-selector';
 import type { Attachment, ChatMessage } from '@/lib/types';
 
+/**
+ * Registry of all available artifact types and their definitions.
+ * Each artifact type defines how to render and interact with specific content types.
+ */
 export const artifactDefinitions = [
   textArtifact,
   codeArtifact,
   imageArtifact,
   sheetArtifact,
 ];
+
+/**
+ * Union type of all possible artifact kinds
+ */
 export type ArtifactKind = (typeof artifactDefinitions)[number]['kind'];
 
+/**
+ * Interface for artifact UI state and metadata
+ * @interface UIArtifact
+ */
 export interface UIArtifact {
+  /** Display title of the artifact */
   title: string;
+  /** Unique identifier for the document */
   documentId: string;
+  /** Type of artifact (text, code, image, sheet) */
   kind: ArtifactKind;
+  /** Current content of the artifact */
   content: string;
+  /** Whether the artifact panel is currently visible */
   isVisible: boolean;
+  /** Current status of the artifact */
   status: 'streaming' | 'idle';
+  /** Bounding box for animation positioning */
   boundingBox: {
     top: number;
     left: number;
@@ -52,6 +71,59 @@ export interface UIArtifact {
   };
 }
 
+/**
+ * Props for the Artifact component
+ * @interface ArtifactProps
+ */
+interface ArtifactProps {
+  /** Unique identifier for the chat session */
+  chatId: string;
+  /** Current input text value */
+  input: string;
+  /** Setter function for input text */
+  setInput: Dispatch<SetStateAction<string>>;
+  /** Current chat status */
+  status: UseChatHelpers<ChatMessage>['status'];
+  /** Function to stop the current chat request */
+  stop: UseChatHelpers<ChatMessage>['stop'];
+  /** Array of file attachments */
+  attachments: Attachment[];
+  /** Setter function for attachments */
+  setAttachments: Dispatch<SetStateAction<Attachment[]>>;
+  /** Array of chat messages */
+  messages: ChatMessage[];
+  /** Setter function for messages */
+  setMessages: UseChatHelpers<ChatMessage>['setMessages'];
+  /** Array of user votes on messages */
+  votes: Array<Vote> | undefined;
+  /** Function to send a new message */
+  sendMessage: UseChatHelpers<ChatMessage>['sendMessage'];
+  /** Function to regenerate the last message */
+  regenerate: UseChatHelpers<ChatMessage>['regenerate'];
+  /** Whether the chat is in read-only mode */
+  isReadonly: boolean;
+  /** Current visibility type setting */
+  selectedVisibilityType: VisibilityType;
+}
+
+/**
+ * Internal pure component for artifact functionality.
+ * 
+ * The Artifact component provides a full-screen overlay for viewing and editing
+ * AI-generated artifacts like code, text documents, images, and spreadsheets.
+ * 
+ * Key features:
+ * - Multi-type artifact support (text, code, images, sheets)
+ * - Version history and comparison (edit/diff modes)
+ * - Real-time content editing with auto-save
+ * - Animated entrance/exit with bounding box positioning
+ * - Mobile-responsive layout
+ * - Integrated chat interface for artifact refinement
+ * 
+ * @component
+ * @param {ArtifactProps} props - The component props
+ * @returns {JSX.Element} The rendered artifact interface
+ */
 function PureArtifact({
   chatId,
   input,
@@ -67,24 +139,11 @@ function PureArtifact({
   votes,
   isReadonly,
   selectedVisibilityType,
-}: {
-  chatId: string;
-  input: string;
-  setInput: Dispatch<SetStateAction<string>>;
-  status: UseChatHelpers<ChatMessage>['status'];
-  stop: UseChatHelpers<ChatMessage>['stop'];
-  attachments: Attachment[];
-  setAttachments: Dispatch<SetStateAction<Attachment[]>>;
-  messages: ChatMessage[];
-  setMessages: UseChatHelpers<ChatMessage>['setMessages'];
-  votes: Array<Vote> | undefined;
-  sendMessage: UseChatHelpers<ChatMessage>['sendMessage'];
-  regenerate: UseChatHelpers<ChatMessage>['regenerate'];
-  isReadonly: boolean;
-  selectedVisibilityType: VisibilityType;
-}) {
+}: ArtifactProps) {
+  // Hook to manage artifact state and metadata
   const { artifact, setArtifact, metadata, setMetadata } = useArtifact();
 
+  // Fetch document versions from the server
   const {
     data: documents,
     isLoading: isDocumentsFetching,
@@ -96,12 +155,15 @@ function PureArtifact({
     fetcher,
   );
 
+  // Local state for version management and editing
   const [mode, setMode] = useState<'edit' | 'diff'>('edit');
   const [document, setDocument] = useState<Document | null>(null);
   const [currentVersionIndex, setCurrentVersionIndex] = useState(-1);
 
+  // Check if sidebar is open for layout calculations
   const { open: isSidebarOpen } = useSidebar();
 
+  // Update local state when documents are fetched
   useEffect(() => {
     if (documents && documents.length > 0) {
       const mostRecentDocument = documents.at(-1);
@@ -109,6 +171,7 @@ function PureArtifact({
       if (mostRecentDocument) {
         setDocument(mostRecentDocument);
         setCurrentVersionIndex(documents.length - 1);
+        // Update artifact content with the latest document version
         setArtifact((currentArtifact) => ({
           ...currentArtifact,
           content: mostRecentDocument.content ?? '',
@@ -117,17 +180,26 @@ function PureArtifact({
     }
   }, [documents, setArtifact]);
 
+  // Refetch documents when artifact status changes
   useEffect(() => {
     mutateDocuments();
   }, [artifact.status, mutateDocuments]);
 
+  // SWR mutate function for optimistic updates
   const { mutate } = useSWRConfig();
   const [isContentDirty, setIsContentDirty] = useState(false);
 
+  /**
+   * Handles content changes by saving to server and updating local cache.
+   * Uses optimistic updates for immediate UI feedback.
+   * 
+   * @param updatedContent - The new content to save
+   */
   const handleContentChange = useCallback(
     (updatedContent: string) => {
       if (!artifact) return;
 
+      // Optimistically update the SWR cache
       mutate<Array<Document>>(
         `/api/document?id=${artifact.documentId}`,
         async (currentDocuments) => {
@@ -140,7 +212,9 @@ function PureArtifact({
             return currentDocuments;
           }
 
+          // Only save if content actually changed
           if (currentDocument.content !== updatedContent) {
+            // Save to server
             await fetch(`/api/document?id=${artifact.documentId}`, {
               method: 'POST',
               body: JSON.stringify({
@@ -152,6 +226,7 @@ function PureArtifact({
 
             setIsContentDirty(false);
 
+            // Create new document version for cache
             const newDocument = {
               ...currentDocument,
               content: updatedContent,
@@ -168,19 +243,29 @@ function PureArtifact({
     [artifact, mutate],
   );
 
+  // Debounced version of content change handler to reduce server requests
   const debouncedHandleContentChange = useDebounceCallback(
     handleContentChange,
     2000,
   );
 
+  /**
+   * Saves content changes with optional debouncing.
+   * Shows "saving" indicator while content is dirty.
+   * 
+   * @param updatedContent - The new content to save
+   * @param debounce - Whether to debounce the save operation
+   */
   const saveContent = useCallback(
     (updatedContent: string, debounce: boolean) => {
       if (document && updatedContent !== document.content) {
         setIsContentDirty(true);
 
         if (debounce) {
+          // Use debounced save for frequent changes (typing)
           debouncedHandleContentChange(updatedContent);
         } else {
+          // Save immediately for explicit actions
           handleContentChange(updatedContent);
         }
       }
@@ -188,29 +273,44 @@ function PureArtifact({
     [document, debouncedHandleContentChange, handleContentChange],
   );
 
+  /**
+   * Gets content of a document by its version index.
+   * 
+   * @param index - The version index to retrieve
+   * @returns The document content or empty string if not found
+   */
   function getDocumentContentById(index: number) {
     if (!documents) return '';
     if (!documents[index]) return '';
     return documents[index].content ?? '';
   }
 
+  /**
+   * Handles version navigation and mode switching.
+   * 
+   * @param type - The type of version change to perform
+   */
   const handleVersionChange = (type: 'next' | 'prev' | 'toggle' | 'latest') => {
     if (!documents) return;
 
     if (type === 'latest') {
+      // Jump to the most recent version and enable editing
       setCurrentVersionIndex(documents.length - 1);
       setMode('edit');
     }
 
     if (type === 'toggle') {
+      // Switch between edit and diff view modes
       setMode((mode) => (mode === 'edit' ? 'diff' : 'edit'));
     }
 
     if (type === 'prev') {
+      // Navigate to previous version if available
       if (currentVersionIndex > 0) {
         setCurrentVersionIndex((index) => index - 1);
       }
     } else if (type === 'next') {
+      // Navigate to next version if available
       if (currentVersionIndex < documents.length - 1) {
         setCurrentVersionIndex((index) => index + 1);
       }
@@ -499,13 +599,54 @@ function PureArtifact({
   );
 }
 
+/**
+ * Memoized artifact component that provides a full-screen interface for
+ * viewing and editing AI-generated artifacts.
+ * 
+ * The Artifact component creates an immersive editing environment with:
+ * - Multi-type artifact support (text, code, images, spreadsheets)
+ * - Version history with diff/edit modes
+ * - Real-time collaborative editing with auto-save
+ * - Animated transitions and responsive design
+ * - Integrated chat for artifact refinement
+ * - Toolbar for artifact-specific actions
+ * 
+ * The component uses sophisticated animation and layout logic to provide
+ * smooth transitions from the chat interface to the full-screen artifact view.
+ * 
+ * @example
+ * ```tsx
+ * <Artifact
+ *   chatId="chat-123"
+ *   input={currentInput}
+ *   setInput={setInput}
+ *   status="ready"
+ *   stop={stopGeneration}
+ *   attachments={files}
+ *   setAttachments={setFiles}
+ *   sendMessage={sendMessage}
+ *   messages={messages}
+ *   setMessages={setMessages}
+ *   regenerate={regenerateResponse}
+ *   votes={messageVotes}
+ *   isReadonly={false}
+ *   selectedVisibilityType="private"
+ * />
+ * ```
+ */
 export const Artifact = memo(PureArtifact, (prevProps, nextProps) => {
+  // Re-render if chat status changes
   if (prevProps.status !== nextProps.status) return false;
+  // Re-render if votes data changes
   if (!equal(prevProps.votes, nextProps.votes)) return false;
+  // Re-render if input text changes
   if (prevProps.input !== nextProps.input) return false;
+  // Re-render if messages array changes (note: comparing length for performance)
   if (!equal(prevProps.messages, nextProps.messages.length)) return false;
+  // Re-render if visibility type changes
   if (prevProps.selectedVisibilityType !== nextProps.selectedVisibilityType)
     return false;
 
+  // Skip re-render if none of the key props changed
   return true;
 });
