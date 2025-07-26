@@ -11,11 +11,11 @@ import { ChatSDKError, type ErrorCode } from './errors';
 import type { ChatMessage, ChatTools, CustomUIDataTypes } from './types';
 import { formatISO } from 'date-fns';
 
-export function cn(...inputs: ClassValue[]) {
+export function cn(...inputs: ClassValue[]): string {
   return twMerge(clsx(inputs));
 }
 
-export const fetcher = async (url: string) => {
+export const fetcher = async (url: string): Promise<any> => {
   const response = await fetch(url);
 
   if (!response.ok) {
@@ -29,7 +29,7 @@ export const fetcher = async (url: string) => {
 export async function fetchWithErrorHandlers(
   input: RequestInfo | URL,
   init?: RequestInit,
-) {
+): Promise<Response> {
   try {
     const response = await fetch(input, init);
 
@@ -48,7 +48,7 @@ export async function fetchWithErrorHandlers(
   }
 }
 
-export function getLocalStorage(key: string) {
+export function getLocalStorage(key: string): any[] {
   if (typeof window !== 'undefined') {
     return JSON.parse(localStorage.getItem(key) || '[]');
   }
@@ -66,7 +66,7 @@ export function generateUUID(): string {
 type ResponseMessageWithoutId = CoreToolMessage | CoreAssistantMessage;
 type ResponseMessage = ResponseMessageWithoutId & { id: string };
 
-export function getMostRecentUserMessage(messages: Array<UIMessage>) {
+export function getMostRecentUserMessage(messages: Array<UIMessage>): UIMessage | undefined {
   const userMessages = messages.filter((message) => message.role === 'user');
   return userMessages.at(-1);
 }
@@ -74,7 +74,7 @@ export function getMostRecentUserMessage(messages: Array<UIMessage>) {
 export function getDocumentTimestampByIndex(
   documents: Array<Document>,
   index: number,
-) {
+): Date {
   if (!documents) return new Date();
   if (index > documents.length) return new Date();
 
@@ -93,7 +93,7 @@ export function getTrailingMessageId({
   return trailingMessage.id;
 }
 
-export function sanitizeText(text: string) {
+export function sanitizeText(text: string): string {
   return text.replace('<has_function_call>', '');
 }
 
