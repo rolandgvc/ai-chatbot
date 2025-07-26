@@ -8,17 +8,16 @@ import { cn } from '@/lib/utils';
 
 import 'react-data-grid/lib/styles.css';
 
-interface SheetData {
-  rows: string[][];
-  headers: string[];
-}
-
 interface SheetRowData {
   id: number;
   rowNumber: number;
   [key: string]: string | number;
 }
 
+interface SheetData {
+  rows: string[][];
+  headers: string[];
+}
 type SheetEditorProps = {
   content: string;
   saveContent: (content: string, isCurrentVersion: boolean) => void;

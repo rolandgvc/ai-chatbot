@@ -7,20 +7,17 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
 interface ArtifactMetadata {
-  id?: string;
-  type?: string;
-  version?: number;
   [key: string]: unknown;
 }
 
-interface ArtifactActionsProps {
+interface ArtifactActionsProps<M extends ArtifactMetadata = ArtifactMetadata> {
   artifact: UIArtifact;
   handleVersionChange: (type: 'next' | 'prev' | 'toggle' | 'latest') => void;
   currentVersionIndex: number;
   isCurrentVersion: boolean;
   mode: 'edit' | 'diff';
-  metadata: ArtifactMetadata;
-  setMetadata: Dispatch<SetStateAction<ArtifactMetadata>>;
+  metadata: M | null;
+  setMetadata: Dispatch<SetStateAction<M | null>>;
 }
 
 function PureArtifactActions({

@@ -22,21 +22,22 @@ import equal from 'fast-deep-equal';
 import { SpreadsheetEditor } from './sheet-editor';
 import { ImageEditor } from './image-editor';
 
-interface DocumentResult {
-  id: string;
+interface DocumentCreateArgs {
   title: string;
   kind: ArtifactKind;
 }
 
-interface DocumentArgs {
+interface DocumentCreateResult {
+  id: string;
   title: string;
   kind: ArtifactKind;
+  content: string;
 }
 
 interface DocumentPreviewProps {
   isReadonly: boolean;
-  result?: DocumentResult;
-  args?: DocumentArgs;
+  result?: DocumentCreateResult;
+  args?: DocumentCreateArgs;
 }
 
 export function DocumentPreview({
@@ -160,7 +161,7 @@ const PureHitboxLayer = ({
   setArtifact,
 }: {
   hitboxRef: React.RefObject<HTMLDivElement>;
-  result: DocumentResult;
+  result: DocumentCreateResult;
   setArtifact: (
     updaterFn: UIArtifact | ((currentArtifact: UIArtifact) => UIArtifact),
   ) => void;
