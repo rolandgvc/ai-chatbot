@@ -3,6 +3,7 @@
  * Tests that the new TypeScript interfaces work correctly
  */
 
+import { test, expect } from '@playwright/test';
 import type { User } from 'next-auth';
 
 // Mock user data for testing
@@ -10,10 +11,11 @@ const mockUser: User = {
   id: 'test-user-id',
   email: 'test@example.com',
   name: 'Test User',
+  type: 'regular', // Add missing type property
 };
 
 // Test interface definitions by importing and using them
-describe('Component Interface Validation', () => {
+test.describe('Component Interface Validation', () => {
   test('SidebarProps interface structure', () => {
     // Test that SidebarProps accepts User | undefined
     const validProps: { user: User | undefined } = {
