@@ -22,10 +22,22 @@ import equal from 'fast-deep-equal';
 import { SpreadsheetEditor } from './sheet-editor';
 import { ImageEditor } from './image-editor';
 
+interface DocumentCreateArgs {
+  title: string;
+  kind: ArtifactKind;
+}
+
+interface DocumentCreateResult {
+  id: string;
+  title: string;
+  kind: ArtifactKind;
+  content: string;
+}
+
 interface DocumentPreviewProps {
   isReadonly: boolean;
-  result?: any;
-  args?: any;
+  result?: DocumentCreateResult;
+  args?: DocumentCreateArgs;
 }
 
 export function DocumentPreview({
@@ -81,7 +93,7 @@ export function DocumentPreview({
   }
 
   if (isDocumentsFetching) {
-    return <LoadingSkeleton artifactKind={result.kind ?? args.kind} />;
+    return <LoadingSkeleton artifactKind={result?.kind ?? args?.kind ?? 'text'} />;
   }
 
   const document: Document | null = previewDocument
@@ -101,11 +113,13 @@ export function DocumentPreview({
 
   return (
     <div className="relative w-full cursor-pointer">
-      <HitboxLayer
-        hitboxRef={hitboxRef}
-        result={result}
-        setArtifact={setArtifact}
-      />
+      {result && (
+        <HitboxLayer
+          hitboxRef={hitboxRef}
+          result={result}
+          setArtifact={setArtifact}
+        />
+      )}
       <DocumentHeader
         title={document.title}
         kind={document.kind}
@@ -147,7 +161,7 @@ const PureHitboxLayer = ({
   setArtifact,
 }: {
   hitboxRef: React.RefObject<HTMLDivElement>;
-  result: any;
+  result: DocumentCreateResult;
   setArtifact: (
     updaterFn: UIArtifact | ((currentArtifact: UIArtifact) => UIArtifact),
   ) => void;
