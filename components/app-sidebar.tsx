@@ -18,7 +18,15 @@ import {
 import Link from 'next/link';
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
 
-export function AppSidebar({ user }: { user: User | undefined }) {
+/**
+ * Props for the AppSidebar component
+ */
+interface AppSidebarProps {
+  /** The authenticated user object, undefined if not logged in */
+  user: User | undefined;
+}
+
+export function AppSidebar({ user }: AppSidebarProps) {
   const router = useRouter();
   const { setOpenMobile } = useSidebar();
 

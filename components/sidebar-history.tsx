@@ -93,7 +93,15 @@ export function getChatHistoryPaginationKey(
   return `/api/history?ending_before=${firstChatFromPage.id}&limit=${PAGE_SIZE}`;
 }
 
-export function SidebarHistory({ user }: { user: User | undefined }) {
+/**
+ * Props for the SidebarHistory component
+ */
+interface SidebarHistoryProps {
+  /** The authenticated user object, undefined if not logged in */
+  user: User | undefined;
+}
+
+export function SidebarHistory({ user }: SidebarHistoryProps) {
   const { setOpenMobile } = useSidebar();
   const { id } = useParams();
 
