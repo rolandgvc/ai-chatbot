@@ -27,7 +27,7 @@ interface ConsoleProps {
   setConsoleOutputs: Dispatch<SetStateAction<Array<ConsoleOutput>>>;
 }
 
-export function Console({ consoleOutputs, setConsoleOutputs }: ConsoleProps) {
+export function Console({ consoleOutputs, setConsoleOutputs }: ConsoleProps): React.JSX.Element | null {
   const [height, setHeight] = useState<number>(300);
   const [isResizing, setIsResizing] = useState(false);
   const consoleEndRef = useRef<HTMLDivElement>(null);
